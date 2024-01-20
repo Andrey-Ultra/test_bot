@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 import sqlite3
 import cryptocompare
+import config
 
 def get_crypto_price_in_rub(ticket):
     try:
