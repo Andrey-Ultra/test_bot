@@ -3,9 +3,19 @@ from telebot import types
 import sqlite3
 import cryptocompare
 
+
+
 def get_crypto_price_in_rub(ticket):
     try:
         price = cryptocompare.get_price(ticket, currency='RUB')[ticket]['RUB']
+
+        return price
+    except Exception as e:
+        return "???"
+ 
+def get_crypto_price_in_usd(ticket):
+    try:
+        price = cryptocompare.get_price(ticket, currency='USD')[ticket]['USD']
 
         return price
     except Exception as e:
@@ -30,7 +40,7 @@ keyboard_start.row("Добавить валюту", "Удалить валюту
 
 
 keyboard_add_currency = types.ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard_add_currency.row("Вернуться назад", "Популярные валюты")
+keyboard_add_currency.row("Вернуться назад")
 keyboard_add_currency.row("BTC", "ETH", "XRP", "LTC", "BCH")
 
 
@@ -71,20 +81,17 @@ def handle_current_price(message):
 
     currencies_message = "Выбранные валюты:\n"
     for i in currencies:
-        currencies_message += i+': '+str(get_crypto_price_in_rub(i)) + ' ₽\n';
+        currencies_message += i+': '+str(get_crypto_price_in_rub(i)) + ' RUB\n';
+        currencies_message += i+': '+str(get_crypto_price_in_usd(i)) + ' USD\n\n';
     bot.send_message(message.chat.id, currencies_message)
 
 @bot.message_handler(func=lambda message: message.text == "Вернуться назад", content_types=['text'])
 def handle_back(message):
     bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
 
-@bot.message_handler(func=lambda message: message.text == "Популярные валюты", content_types=['text'])
-def handle_popular_currencies(message):
-
-    bot.send_message(message.chat.id, "Список популярных валют: USD, EUR, GBP, JPY, CNY")
 
 
-@bot.message_handler(func=lambda message: message.text not in ["Добавить валюту", "Удалить валюту", "Текущая стоимость", "Вернуться назад", "Популярные валюты", *get_user_currencies(message.from_user.id)])
+@bot.message_handler(func=lambda message: message.text not in ["Добавить валюту", "Удалить валюту", "Текущая стоимость", "Вернуться назад", *get_user_currencies(message.from_user.id)])
 def handle_custom_currency(message):
     user_id = message.from_user.id
     currency_name = message.text
@@ -139,6 +146,71 @@ def get_user_currencies(user_id):
             return result[0].split(",") if result[0] else []
         else:
             return []
+
+  
+def get_history_prices_5min(user_id):
+    currencies = get_user_currencies(user_id)
+
+    if not currencies:
+        bot.send_message(message.chat.id, "Список валют пуст.")
+        return
+    currencies_message = "История торгов за последние 5 минут\n" #а есть какие более разумные интервалы limit = ? 
+    for i in currencies:
+        eternalsin = cryptocompare.get_historical_price_minute(i, currency='USD', limit=4) 
+        # high low . open close не нужны здесь
+        currencies_message += i + ':\n'
+        for j in eternalsin:
+            dicct = eternalsin[j]
+            currencies_message+= 'Max: ' + dicct.get('high') + 'USD\n' + 'Min: ' + dicct.get('low') + 'USD\n\n'
+    bot.send_message(message.chat.id, currencies_message)
+    
+   
+def get_history_prices_3hour(user_id):
+    currencies = get_user_currencies(user_id)
+
+    if not currencies:
+        bot.send_message(message.chat.id, "Список валют пуст.")
+        return
+    currencies_message = "История торгов за последние 3 часa\n"
+    for i in currencies:
+        eternalsin = cryptocompare.get_historical_price_hour(i, currency='USD', limit=2) #рожает список словарей лимт+1
+        currencies_message += i + ':\n'
+        for j in eternalsin:
+            dicct = eternalsin[j]
+            currencies_message+= 'Max: ' + dicct.get('high') + 'USD\n' + 'Min: ' + dicct.get('low') + 'USD\n' + 'Откр: ' + dicct.get('open') + 'USD\n' + 'Закр: ' + dicct.get('close') + 'USD\n'
+    bot.send_message(message.chat.id, currencies_message)
+
+
+def get_history_prices_2day(user_id):
+    currencies = get_user_currencies(user_id)
+
+    if not currencies:
+        bot.send_message(message.chat.id, "Список валют пуст.")
+        return
+    currencies_message = "История торгов за вчера и сегодня\n"
+    for i in currencies:
+        eternalsin = cryptocompare.get_historical_price_minute(i, currency='USD', limit=1) 
+        currencies_message += i + ':\n'
+        for j in eternalsin:
+            dicct = eternalsin[j]
+            currencies_message+= 'Max: ' + dicct.get('high') + 'USD\n' + 'Min: ' + dicct.get('low') + 'USD\n' + 'Откр: ' + dicct.get('open') + 'USD\n' + 'Закр: ' + dicct.get('close') + 'USD\n'
+    bot.send_message(message.chat.id, currencies_message)
+    
+
+def get_history_prices_week(user_id):
+    currencies = get_user_currencies(user_id)
+
+    if not currencies:
+        bot.send_message(message.chat.id, "Список валют пуст.")
+        return
+    currencies_message = "История торгов за последние 3 часa\n"
+    for i in currencies:
+        eternalsin = cryptocompare.get_historical_price_day(i, currency='USD', limit=6) 
+        currencies_message += i + ':\n'
+        for j in eternalsin:
+            dicct = eternalsin[j]
+            currencies_message+= 'Max: ' + dicct.get('high') + 'USD\n' + 'Min: ' + dicct.get('low') + 'USD\n' + 'Откр: ' + dicct.get('open') + 'USD\n' + 'Закр: ' + dicct.get('close') + 'USD\n'
+    bot.send_message(message.chat.id, currencies_message)
 
 if __name__ == "__main__":
     bot.polling(none_stop=True)
