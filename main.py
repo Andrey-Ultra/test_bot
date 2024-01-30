@@ -19,8 +19,8 @@ def get_history_prices_5min(ticker):
     currencies_message += ticker + ':\n\n'
     for j in eternalsin:
         dicct = j
-        currencies_message += 'Max:  ' + str(dicct.get('high')) + ' USD\n' + 'Min:  ' + str(
-            dicct.get('low')) + ' USD\n\n'
+        currencies_message += 'Max:  ' + str(
+            dicct.get('high')) + ' USD\n' '\n'  # + 'Min:  ' + str(dicct.get('low')) + ' USD\n\n'
     return currencies_message
 
 
@@ -30,9 +30,8 @@ def get_history_prices_3hour(ticker):
     currencies_message += ticker + ':\n\n'
     for j in eternalsin:
         dicct = j
-        currencies_message += 'Max:  ' + str(dicct.get('high')) + ' USD\n' + 'Min:  ' + str(
-            dicct.get('low')) + ' USD\n' + 'Откр: ' + str(dicct.get('open')) + ' USD\n' + 'Закр: ' + str(
-            dicct.get('close')) + 'USD\n\n'
+        # currencies_message += 'Max:  ' + str(dicct.get('high')) + ' USD\n' + 'Min:  ' + str(dicct.get('low')) + ' USD\n' + 'Откр: ' + str(dicct.get('open')) + ' USD\n'
+        currencies_message += str(dicct.get('close')) + 'USD\n\n'
     return currencies_message
 
 
@@ -54,9 +53,8 @@ def get_history_prices_week(ticker):
     currencies_message += ticker + ':\n\n'
     for j in eternalsin:
         dicct = j
-        currencies_message += 'Max:  ' + str(dicct.get('high')) + ' USD\n' + 'Min:  ' + str(
-            dicct.get('low')) + ' USD\n' + 'Откр: ' + str(dicct.get('open')) + ' USD\n' + 'Закр: ' + str(
-            dicct.get('close')) + ' USD\n\n'
+        # currencies_message+= 'Max:  ' + str(dicct.get('high')) + ' USD\n' + 'Min:  ' + str(dicct.get('low')) + ' USD\n' + 'Откр: ' + str(dicct.get('open')) + ' USD\n' + 'Закр: ' + str(dicct.get('close')) + ' USD\n\n'
+        currencies_message += str(dicct.get('close')) + ' USD\n\n'
     return currencies_message
 
 bot = telebot.TeleBot('6457686610:AAHLoxn3SS7iAQ8j_XkuYF8xl8AlITjmLmo')
@@ -83,6 +81,10 @@ keyboard_other = types.ReplyKeyboardMarkup(resize_keyboard=True)
 keyboard_other.row("Вернуться назад", "5 минут",  "3 часа", "2 дня", "неделя")
 
 
+keyboard_add_currency = types.ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_add_currency.row("Вернуться назад")
+keyboard_add_currency.row("BTC", "ETH", "XRP", "LTC", "BCH")
+
 keyboard_remove_currency = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
 
@@ -94,30 +96,37 @@ def handle_start(message):
 
 @bot.message_handler(func=lambda message: message.text == "Добавить валюту")
 def handle_add_currency(message):
-    bot.send_message(message.chat.id, "Введите название валюты для добавления:")
+    bot.send_message(message.chat.id, "Введите название тикер криптовалюты или выберете из популярных для добавления:", reply_markup=keyboard_add_currency)
     bot.register_next_step_handler(message, process_add_currency)
 
 def process_add_currency(message):
     user_id = message.from_user.id
     currency_to_add = message.text.strip()
 
+    if currency_to_add == "Вернуться назад":
+        bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
+        return
+
     if currency_to_add not in known_tickers:
         bot.send_message(user_id, "Неверный тикер криптовалюты.")
+        bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
         return
 
     if not currency_to_add:
-        bot.send_message(user_id, "Вы ввели пустое название валюты. Попробуйте еще раз.")
+        bot.send_message(user_id, "Вы ввели пустое название криптовалюты. Попробуйте еще раз.")
+        bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
         return
 
     currencies = get_user_currencies(user_id)
 
     if currency_to_add in currencies:
-        bot.send_message(user_id, "Эта валюта уже есть в вашем списке.")
+        bot.send_message(user_id, "Эта криптовалюта уже есть в вашем списке.")
+        bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
         return
 
     add_user_currency(user_id, currency_to_add)
-    bot.send_message(user_id, f"Валюта {currency_to_add} добавлена!")
-
+    bot.send_message(user_id, f"Криптовалюта {currency_to_add} добавлена!")
+    bot.send_message(message.chat.id, "Выбери команду:", reply_markup=keyboard_start)
 
 # Удаляем валюту
 @bot.message_handler(func=lambda message: message.text == "Удалить валюту")
