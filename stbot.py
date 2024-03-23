@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('5992928516:AAG2KqhhF-n21dqPssb4NtdcgCKo0h2t8sU')
+bot = telebot.TeleBot('')
 hrefflag = 0
 
 def is_url(s): #интегрировать парсер
